@@ -19,7 +19,7 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
-        // 1. 核心渲染器与环境设置
+        // 1. Core Renderer and Environment Setup
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xffffff); 
         
@@ -37,13 +37,13 @@
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
 
-        // 生成 HDR 环境映射
+        // Generate HDR environment map
         const pmremGenerator = new THREE.PMREMGenerator(renderer);
         scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
 
 
         // ==========================================
-        // 2. 高级 PBR 材质系统
+        // 2. Advanced PBR Material System
         // ==========================================
         const polishedMetal = new THREE.MeshPhysicalMaterial({
             color: 0xffffff,       
@@ -61,14 +61,14 @@
             envMapIntensity: 2.0
         });
 
-        // 3. 几何总成
+        // 3. Geometry Assembly
         const assembly = new THREE.Group();
         assembly.rotation.z = -Math.PI / 2;
         assembly.rotation.x = Math.PI / 7;
         assembly.rotation.y = -Math.PI / 10;
         scene.add(assembly);
 
-        // --- 核心几何基准 ---
+        // --- Core Geometry Benchmarks ---
         const N = 27;          
         const H_roller = 6.0;  
         const R_roller = 1.0;  
@@ -76,7 +76,7 @@
         const TILT_ANGLE = 0.18; 
 
         // ==========================================
-        // 1 号：外圈 
+        // #1: Outer Ring
         // ==========================================
         const pts1 = [];
         const H1 = 7.0;
@@ -90,7 +90,7 @@
         assembly.add(obj1);
 
         // ==========================================
-        // 3 号：滚子阵列 
+        // #3: Roller Array
         // ==========================================
         const obj3 = new THREE.Group();
         const rollerGeo = new THREE.CylinderGeometry(R_roller, R_roller, H_roller, 64);
@@ -106,7 +106,7 @@
         assembly.add(obj3);
 
         // ==========================================
-        // 2 号：保持架 
+        // #2: Cage
         // ==========================================
         const obj2 = new THREE.Group();
         const CAGE_THICKNESS = 0.25; 
@@ -150,7 +150,7 @@
         assembly.add(obj2);
 
         // ==========================================
-        // 4 号：内圈
+        // #4: Inner Ring
         // ==========================================
         const pts4 = [];
         const H4 = 8.0;
@@ -166,24 +166,23 @@
         assembly.add(obj4);
 
         // ==========================================
-        // 【核心植入】：物理时间时钟与完美旋转引擎
+        // [Core Engine]: Physical Time Clock and Perfect Rotation Engine
         // ==========================================
-        const clock = new THREE.Clock(); // 实例化全局时间发生器
-        const angularSpeed = 0.5; // 旋转角速度 (数值越大转得越快)
+        const clock = new THREE.Clock(); // Instantiate global time generator
+        const angularSpeed = 0.5; // Angular velocity (higher = faster)
 
         // Render Loop
         function animate() {
             requestAnimationFrame(animate);
             
-            // 1. 获取两帧之间真实的物理时间差 (Delta Time)
+            // 1. Get physical delta time between frames
             const delta = clock.getDelta();
             
-            // 2. 计算这一帧应该旋转的角度增量
+            // 2. Calculate rotation increment for this frame
             const step = angularSpeed * delta;
             
-            // 3. 应用局部旋转，并使用模运算 (% Math.PI * 2)
-            // 物理意义：每转满一圈(360度/2PI)，数值归零。
-            // 这样无论程序运行多少小时，旋转数值永远不会无限变大，彻底避免卡死！
+            // 3. Apply local rotation with modulo (wrapping at 2PI)
+            // This ensures numerical stability over long periods of time.
             obj1.rotation.y = (obj1.rotation.y + step) % (Math.PI * 2);
             obj2.rotation.y = (obj2.rotation.y + step) % (Math.PI * 2);
             obj3.rotation.y = (obj3.rotation.y + step) % (Math.PI * 2);
