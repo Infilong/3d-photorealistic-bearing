@@ -1,8 +1,12 @@
-# 3D Photorealistic Bearing Model
+# 3D Photorealistic Rotating Bearing
 
 A high-performance 3D visualization of a stainless steel bearing built with Three.js and Gemini-powered procedural modeling.
 
+## Demo
+![Bearing Rotation Demo](demo/demo.webp)
+
 ## Features
+- **Auto-Rotation**: Smooth horizontal rotation using a physical-time-based engine.
 - **Photorealistic Materials**: Physical-based rendering (PBR) for polished and brushed stainless steel.
 - **Cinematic Lighting**: ACES Filmic Tone Mapping and environment mapping (RoomEnvironment).
 - **Accurate Geometry**: Procedural generation of outer rings, rollers, and cage structures.
