@@ -8,7 +8,7 @@ This project is a demonstration of **AI-driven procedural modeling**. It was dev
 ### Reference vs Model
 | Original Image | 3D Rendered Demo |
 | :---: | :---: |
-| ![Original Reference](Original.png) | <video src="demo.mp4" controls width="400"></video> |
+| ![Original Reference](Original.png) | ![3D Rotation Demo](demo.gif) |
 
 ## Features
 - **Auto-Rotation**: Smooth horizontal rotation using a physical-time-based engine.
