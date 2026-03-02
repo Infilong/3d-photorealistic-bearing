@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Photorealistic Stainless Steel Bearing</title>
+    <title>Photorealistic Rotating Bearing</title>
     <style>body { margin: 0; overflow: hidden; background-color: #ffffff; }</style>
 </head>
 <body>
@@ -21,7 +21,7 @@
 
         // 1. 核心渲染器与环境设置
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xffffff); // 纯白背景衬托金属
+        scene.background = new THREE.Color(0xffffff); 
         
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 25, 65);
@@ -30,7 +30,6 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         
-        // 必须开启：电影级色调映射，让金属高光油润而不刺眼
         renderer.toneMapping = THREE.ACESFilmicToneMapping; 
         renderer.toneMappingExposure = 1.2; 
         document.body.appendChild(renderer.domElement);
@@ -38,31 +37,27 @@
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
 
-        // 【关键指令执行】：生成 HDR 环境映射
+        // 生成 HDR 环境映射
         const pmremGenerator = new THREE.PMREMGenerator(renderer);
-        // RoomEnvironment 提供了一个虚拟的影棚灯光阵列
         scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
 
 
         // ==========================================
-        // 2. 高级 PBR 材质系统 (执行用户的光学法则)
+        // 2. 高级 PBR 材质系统
         // ==========================================
-        
-        // 材质 A: 精磨抛光不锈钢 (镜面感)
         const polishedMetal = new THREE.MeshPhysicalMaterial({
-            color: 0xffffff,       // 基础色设为白，全靠反射呈现银色
-            metalness: 1.0,        // 100% 导体
-            roughness: 0.05,       // 极低粗糙度，反射锐利
-            envMapIntensity: 2.5,  // 增强环境反射的对比度
-            clearcoat: 0.2,        // 微弱的清漆层增加质感
+            color: 0xffffff,       
+            metalness: 1.0,        
+            roughness: 0.05,       
+            envMapIntensity: 2.5,  
+            clearcoat: 0.2,        
             clearcoatRoughness: 0.1
         });
 
-        // 材质 B: 冲压亚光不锈钢 (磨砂感)
         const brushedMetal = new THREE.MeshPhysicalMaterial({
-            color: 0xdddddd,       // 基础色稍微暗一点
-            metalness: 1.0,        // 100% 导体
-            roughness: 0.28,       // 提高粗糙度，打散反射光线，产生磨砂感
+            color: 0xdddddd,       
+            metalness: 1.0,        
+            roughness: 0.28,       
             envMapIntensity: 2.0
         });
 
@@ -81,7 +76,7 @@
         const TILT_ANGLE = 0.18; 
 
         // ==========================================
-        // 1 号：外圈 (应用 polishedMetal)
+        // 1 号：外圈 
         // ==========================================
         const pts1 = [];
         const H1 = 7.0;
@@ -95,7 +90,7 @@
         assembly.add(obj1);
 
         // ==========================================
-        // 3 号：滚子阵列 (应用 polishedMetal)
+        // 3 号：滚子阵列 
         // ==========================================
         const obj3 = new THREE.Group();
         const rollerGeo = new THREE.CylinderGeometry(R_roller, R_roller, H_roller, 64);
@@ -111,7 +106,7 @@
         assembly.add(obj3);
 
         // ==========================================
-        // 2 号：保持架 (应用 brushedMetal + 完美镂空结构)
+        // 2 号：保持架 
         // ==========================================
         const obj2 = new THREE.Group();
         const CAGE_THICKNESS = 0.25; 
@@ -123,7 +118,6 @@
             return new THREE.Vector2(baseR + (isOuter ? thickOffset : -thickOffset), y);
         }
 
-        // 上下环带 (Lathe)
         const ptsLeft = [
             getLathePoint(-3.8, false), getLathePoint(-3.8, true),
             getLathePoint(-3.0, true), getLathePoint(-3.0, false), getLathePoint(-3.8, false)
@@ -136,7 +130,6 @@
         ];
         obj2.add(new THREE.Mesh(new THREE.LatheGeometry(ptsRight, 64), brushedMetal));
 
-        // 枢轴推入式实体连杆
         const spanY = 7.6; 
         const strutLength = spanY / Math.cos(TILT_ANGLE); 
         const strutWidthTangential = 1.3; 
@@ -145,14 +138,11 @@
 
         for(let i=0; i<N; i++) {
             let theta = (i + 0.5) * (Math.PI * 2 / N);
-            
             const pivot = new THREE.Group();
             pivot.rotation.y = -theta; 
-            
             const strut = new THREE.Mesh(strutGeo, brushedMetal);
             strut.rotation.x = TILT_ANGLE; 
             strut.position.z = R_pitch + CAGE_RAD_OFFSET;
-            
             pivot.add(strut);
             obj2.add(pivot);
         }
@@ -160,7 +150,7 @@
         assembly.add(obj2);
 
         // ==========================================
-        // 4 号：内圈 (应用 polishedMetal)
+        // 4 号：内圈
         // ==========================================
         const pts4 = [];
         const H4 = 8.0;
@@ -175,9 +165,30 @@
         obj4.position.y = 15;
         assembly.add(obj4);
 
+        // ==========================================
+        // 【核心植入】：物理时间时钟与完美旋转引擎
+        // ==========================================
+        const clock = new THREE.Clock(); // 实例化全局时间发生器
+        const angularSpeed = 0.5; // 旋转角速度 (数值越大转得越快)
+
         // Render Loop
         function animate() {
             requestAnimationFrame(animate);
+            
+            // 1. 获取两帧之间真实的物理时间差 (Delta Time)
+            const delta = clock.getDelta();
+            
+            // 2. 计算这一帧应该旋转的角度增量
+            const step = angularSpeed * delta;
+            
+            // 3. 应用局部旋转，并使用模运算 (% Math.PI * 2)
+            // 物理意义：每转满一圈(360度/2PI)，数值归零。
+            // 这样无论程序运行多少小时，旋转数值永远不会无限变大，彻底避免卡死！
+            obj1.rotation.y = (obj1.rotation.y + step) % (Math.PI * 2);
+            obj2.rotation.y = (obj2.rotation.y + step) % (Math.PI * 2);
+            obj3.rotation.y = (obj3.rotation.y + step) % (Math.PI * 2);
+            obj4.rotation.y = (obj4.rotation.y + step) % (Math.PI * 2);
+
             controls.update();
             renderer.render(scene, camera);
         }
