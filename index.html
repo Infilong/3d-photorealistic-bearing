@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Photorealistic Stainless Steel Bearing</title>
+    <style>body { margin: 0; overflow: hidden; background-color: #ffffff; }</style>
+</head>
+<body>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+        // 1. 核心渲染器与环境设置
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xffffff); // 纯白背景衬托金属
+        
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 25, 65);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        
+        // 必须开启：电影级色调映射，让金属高光油润而不刺眼
+        renderer.toneMapping = THREE.ACESFilmicToneMapping; 
+        renderer.toneMappingExposure = 1.2; 
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // 【关键指令执行】：生成 HDR 环境映射
+        const pmremGenerator = new THREE.PMREMGenerator(renderer);
+        // RoomEnvironment 提供了一个虚拟的影棚灯光阵列
+        scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+
+
+        // ==========================================
+        // 2. 高级 PBR 材质系统 (执行用户的光学法则)
+        // ==========================================
+        
+        // 材质 A: 精磨抛光不锈钢 (镜面感)
+        const polishedMetal = new THREE.MeshPhysicalMaterial({
+            color: 0xffffff,       // 基础色设为白，全靠反射呈现银色
+            metalness: 1.0,        // 100% 导体
+            roughness: 0.05,       // 极低粗糙度，反射锐利
+            envMapIntensity: 2.5,  // 增强环境反射的对比度
+            clearcoat: 0.2,        // 微弱的清漆层增加质感
+            clearcoatRoughness: 0.1
+        });
+
+        // 材质 B: 冲压亚光不锈钢 (磨砂感)
+        const brushedMetal = new THREE.MeshPhysicalMaterial({
+            color: 0xdddddd,       // 基础色稍微暗一点
+            metalness: 1.0,        // 100% 导体
+            roughness: 0.28,       // 提高粗糙度，打散反射光线，产生磨砂感
+            envMapIntensity: 2.0
+        });
+
+        // 3. 几何总成
+        const assembly = new THREE.Group();
+        assembly.rotation.z = -Math.PI / 2;
+        assembly.rotation.x = Math.PI / 7;
+        assembly.rotation.y = -Math.PI / 10;
+        scene.add(assembly);
+
+        // --- 核心几何基准 ---
+        const N = 27;          
+        const H_roller = 6.0;  
+        const R_roller = 1.0;  
+        const R_pitch = 11.0;  
+        const TILT_ANGLE = 0.18; 
+
+        // ==========================================
+        // 1 号：外圈 (应用 polishedMetal)
+        // ==========================================
+        const pts1 = [];
+        const H1 = 7.0;
+        pts1.push(new THREE.Vector2(11.0, -H1/2)); 
+        pts1.push(new THREE.Vector2(13.0, -H1/2)); 
+        pts1.push(new THREE.Vector2(13.0, H1/2));  
+        pts1.push(new THREE.Vector2(12.3, H1/2));  
+        pts1.push(new THREE.Vector2(11.0, -H1/2)); 
+        const obj1 = new THREE.Mesh(new THREE.LatheGeometry(pts1, 64), polishedMetal);
+        obj1.position.y = -15;
+        assembly.add(obj1);
+
+        // ==========================================
+        // 3 号：滚子阵列 (应用 polishedMetal)
+        // ==========================================
+        const obj3 = new THREE.Group();
+        const rollerGeo = new THREE.CylinderGeometry(R_roller, R_roller, H_roller, 64);
+        for(let i=0; i<N; i++) {
+            let theta = i * (Math.PI * 2 / N);
+            let roller = new THREE.Mesh(rollerGeo, polishedMetal);
+            roller.position.set(R_pitch * Math.cos(theta), 0, R_pitch * Math.sin(theta));
+            roller.rotation.y = -theta; 
+            roller.rotation.z = -TILT_ANGLE; 
+            obj3.add(roller);
+        }
+        obj3.position.y = 5;
+        assembly.add(obj3);
+
+        // ==========================================
+        // 2 号：保持架 (应用 brushedMetal + 完美镂空结构)
+        // ==========================================
+        const obj2 = new THREE.Group();
+        const CAGE_THICKNESS = 0.25; 
+        const CAGE_RAD_OFFSET = -0.4; 
+        
+        function getLathePoint(y, isOuter) {
+            const baseR = R_pitch + CAGE_RAD_OFFSET + y * Math.tan(TILT_ANGLE);
+            const thickOffset = (CAGE_THICKNESS / 2) / Math.cos(TILT_ANGLE);
+            return new THREE.Vector2(baseR + (isOuter ? thickOffset : -thickOffset), y);
+        }
+
+        // 上下环带 (Lathe)
+        const ptsLeft = [
+            getLathePoint(-3.8, false), getLathePoint(-3.8, true),
+            getLathePoint(-3.0, true), getLathePoint(-3.0, false), getLathePoint(-3.8, false)
+        ];
+        obj2.add(new THREE.Mesh(new THREE.LatheGeometry(ptsLeft, 64), brushedMetal));
+
+        const ptsRight = [
+            getLathePoint(3.0, false), getLathePoint(3.0, true),
+            getLathePoint(3.8, true), getLathePoint(3.8, false), getLathePoint(3.0, false)
+        ];
+        obj2.add(new THREE.Mesh(new THREE.LatheGeometry(ptsRight, 64), brushedMetal));
+
+        // 枢轴推入式实体连杆
+        const spanY = 7.6; 
+        const strutLength = spanY / Math.cos(TILT_ANGLE); 
+        const strutWidthTangential = 1.3; 
+        
+        const strutGeo = new THREE.BoxGeometry(strutWidthTangential, strutLength, CAGE_THICKNESS);
+
+        for(let i=0; i<N; i++) {
+            let theta = (i + 0.5) * (Math.PI * 2 / N);
+            
+            const pivot = new THREE.Group();
+            pivot.rotation.y = -theta; 
+            
+            const strut = new THREE.Mesh(strutGeo, brushedMetal);
+            strut.rotation.x = TILT_ANGLE; 
+            strut.position.z = R_pitch + CAGE_RAD_OFFSET;
+            
+            pivot.add(strut);
+            obj2.add(pivot);
+        }
+        obj2.position.y = -5;
+        assembly.add(obj2);
+
+        // ==========================================
+        // 4 号：内圈 (应用 polishedMetal)
+        // ==========================================
+        const pts4 = [];
+        const H4 = 8.0;
+        pts4.push(new THREE.Vector2(8.0, -H4/2));     
+        pts4.push(new THREE.Vector2(9.5, -H4/2));     
+        pts4.push(new THREE.Vector2(11.2, H4/2 - 1)); 
+        pts4.push(new THREE.Vector2(12.5, H4/2 - 0.5)); 
+        pts4.push(new THREE.Vector2(12.5, H4/2 + 0.5)); 
+        pts4.push(new THREE.Vector2(8.0, H4/2 + 0.5));  
+        pts4.push(new THREE.Vector2(8.0, -H4/2));     
+        const obj4 = new THREE.Mesh(new THREE.LatheGeometry(pts4, 64), polishedMetal);
+        obj4.position.y = 15;
+        assembly.add(obj4);
+
+        // Render Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
