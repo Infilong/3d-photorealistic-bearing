@@ -5,8 +5,10 @@ A high-performance 3D visualization of a stainless steel bearing.
 ## 🚀 From Image to 3D with Gemini
 This project is a demonstration of **AI-driven procedural modeling**. It was developed entirely by starting with a static reference image and using **Gemini** to generate the complex Three.js geometry, PBR materials, and physical-time-based rotation engine.
 
-## Demo
-![Bearing Rotation Demo](demo/demo.webp)
+### Reference vs Model
+| Original Image | 3D Rendered Demo |
+| :---: | :---: |
+| ![Original Reference](Original.png) | ![3D Rotation Demo](demo/demo.webp) |
 
 ## Features
 - **Auto-Rotation**: Smooth horizontal rotation using a physical-time-based engine.
